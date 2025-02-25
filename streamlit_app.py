@@ -1,69 +1,63 @@
+import streamlit as st
+import google.generativeai as genai
 import requests
 import json
 
-# Configuration: Replace these with your actual API credentials and URLs
-CONTENT_API_URL = "https://your-content-api.com/generate"
-CONTENT_API_KEY = "your-content-api-key"
-GHOST_API_URL = "https://your-ghost-site.com/ghost/api/v3/content/posts/"
-GHOST_API_KEY = "your-ghost-api-key"
-GHOST_ADMIN_API_URL = "https://your-ghost-site.com/ghost/api/v3/admin/posts/"
+# Configure the Gemini AI API key securely
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
-# Generate Content
-def generate_content():
-    headers = {
-        'Authorization': f"Bearer {CONTENT_API_KEY}",
-        'Content-Type': 'application/json'
-    }
-    payload = {
-        "prompt": "Write a blog post about AI in 2025",  # Example prompt, adjust as needed
-        "language": "en",
-        "max_tokens": 500  # Adjust based on your API limits
-    }
+# Ghost API credentials from Streamlit secrets
+GHOST_API_URL = st.secrets["GHOST_API_URL"]
+GHOST_API_KEY = st.secrets["GHOST_API_KEY"]
+GHOST_API_VERSION = "v5.0"  # Specify the Ghost API version you are using
 
-    response = requests.post(CONTENT_API_URL, headers=headers, json=payload)
+# Streamlit App UI
+st.title("Ever AI Autopilot")
+st.write("Generate AI content and post it to your Ghost blog automatically.")
 
-    if response.status_code == 200:
-        generated_content = response.json()
-        return generated_content['text']
-    else:
-        print("Error generating content:", response.text)
-        return None
+# Prompt input field
+prompt = st.text_input("Enter your prompt:", "Best alternatives to javascript?")
 
-# Post Content to Ghost
-def post_to_ghost(title, content):
-    headers = {
-        'Authorization': f"Ghost {GHOST_API_KEY}",
-        'Content-Type': 'application/json'
-    }
-    data = {
-        "posts": [
-            {
-                "title": title,
-                "html": content,
-                "status": "draft",  # Use 'published' for immediate publishing
-            }
-        ]
-    }
-
-    response = requests.post(GHOST_ADMIN_API_URL, headers=headers, json=data)
-
-    if response.status_code == 201:
-        print("Content posted successfully.")
-    else:
-        print("Error posting to Ghost:", response.text)
-
-# Main AutoPilot Logic
-def autopilot():
-    print("Starting autopilot...")
-
-    # Generate Content
-    content = generate_content()
-    if content:
-        title = "AI in 2025"  # Customize title if needed
-        # Post the generated content to Ghost
-        post_to_ghost(title, content)
-    else:
-        print("No content generated, aborting autopilot.")
-
-if __name__ == "__main__":
-    autopilot()
+# Button to generate and post content
+if st.button("Generate and Post"):
+    try:
+        # Load and configure the Gemini model
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # Generate response from the model
+        response = model.generate_content(prompt)
+        
+        # Display response in Streamlit
+        st.write("Generated Response:")
+        st.write(response.text)
+        
+        # Prepare post data for Ghost API
+        post_data = {
+            "posts": [
+                {
+                    "title": f"Generated Post: {prompt}",
+                    "slug": prompt.replace(" ", "-").lower(),
+                    "html": f"<p>{response.text}</p>",
+                    "status": "published"  # Automatically publish
+                }
+            ]
+        }
+        
+        # Make API call to Ghost to post the content
+        headers = {
+            "Authorization": f"Ghost {GHOST_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        # Send POST request to create a new post on Ghost
+        api_url = f"{GHOST_API_URL}/ghost/api/{GHOST_API_VERSION}/posts/"
+        response = requests.post(api_url, headers=headers, data=json.dumps(post_data))
+        
+        # Check for successful response
+        if response.status_code == 201:
+            st.success("Post successfully created on Ghost blog!")
+        else:
+            st.error(f"Failed to post content: {response.status_code} - {response.text}")
+    
+    except Exception as e:
+        st.error(f"Error: {e}")
