@@ -3,13 +3,13 @@ import google.generativeai as genai
 import requests
 import json
 
-# Configure the Gemini AI API key securely
+# Configure the Google Gemini API key securely
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 # Ghost API credentials from Streamlit secrets
 GHOST_API_URL = st.secrets["GHOST_API_URL"]
 GHOST_API_KEY = st.secrets["GHOST_API_KEY"]
-GHOST_API_VERSION = "v5.0"  # Specify the Ghost API version you are using
+GHOST_API_VERSION = "v5.0"  # Ensure this matches your Ghost API version
 
 # Streamlit App UI
 st.title("Ever AI Autopilot")
@@ -42,22 +42,25 @@ if st.button("Generate and Post"):
                 }
             ]
         }
-        
-        # Make API call to Ghost to post the content
+
+        # Headers for Ghost API request
         headers = {
             "Authorization": f"Ghost {GHOST_API_KEY}",
             "Content-Type": "application/json"
         }
         
-        # Send POST request to create a new post on Ghost
+        # Construct the API URL
         api_url = f"{GHOST_API_URL}/ghost/api/{GHOST_API_VERSION}/posts/"
+        
+        # Send POST request to create a new post on Ghost
         response = requests.post(api_url, headers=headers, data=json.dumps(post_data))
         
-        # Check for successful response
+        # Check the response status
         if response.status_code == 201:
             st.success("Post successfully created on Ghost blog!")
         else:
-            st.error(f"Failed to post content: {response.status_code} - {response.text}")
+            st.error(f"Failed to post content to Ghost blog: {response.status_code} - {response.text}")
+            st.write(f"Response details: {response.json()}")
     
     except Exception as e:
         st.error(f"Error: {e}")
