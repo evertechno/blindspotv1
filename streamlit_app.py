@@ -2,6 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 import PyPDF2
 
+# Configure the API key for google.generativeai
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 def extract_text_from_pdf(file):
@@ -38,6 +39,7 @@ def analyze_insurance_document(document_text):
         st.error(f"Error during analysis: {e}")
         return None
 
+# Streamlit UI
 st.title("Insurance Document Deep Analyzer")
 st.write("Upload your insurance document (PDF) for in-depth analysis.")
 
@@ -52,13 +54,12 @@ if uploaded_file is not None:
         st.error("Unsupported file type. Please upload a PDF file.")
         document_text = None
 
-    if document_text:
-        if st.button("Perform Deep Analysis"):
-            with st.spinner("Analyzing document..."):
-                analysis_result = analyze_insurance_document(document_text)
+    if document_text and st.button("Perform Deep Analysis"):
+        with st.spinner("Analyzing document..."):
+            analysis_result = analyze_insurance_document(document_text)
 
-            if analysis_result:
-                st.subheader("Detailed Analysis Results:")
-                st.write(analysis_result)
-            else:
-                st.warning("Analysis failed. Please check your document and try again.")
+        if analysis_result:
+            st.subheader("Detailed Analysis Results:")
+            st.write(analysis_result)
+        else:
+            st.warning("Analysis failed. Please check your document and try again.")
