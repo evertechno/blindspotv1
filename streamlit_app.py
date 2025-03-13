@@ -11,7 +11,7 @@ def extract_text_from_pdf(file):
         pdf_reader = PyPDF2.PdfReader(file)
         text = ""
         for page_num in range(len(pdf_reader.pages)):
-            text += pdf_reader.pages[page_num].extract_text()
+            text += pdf_reader.pages[page_num].extract_text() or ""  # Handle pages without text
         return text
     except Exception as e:
         st.error(f"Error extracting text from PDF: {e}")
@@ -19,7 +19,6 @@ def extract_text_from_pdf(file):
 
 def extract_relevant_clauses(document_text):
     try:
-        # Define patterns to identify clauses and terms
         clause_patterns = [
             r'\bterm\b',
             r'\bclause\b',
@@ -31,7 +30,6 @@ def extract_relevant_clauses(document_text):
             r'\bpolicy\b'
         ]
 
-        # Extract sentences containing the relevant patterns
         sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', document_text)
         relevant_sentences = [sentence for sentence in sentences if any(re.search(pattern, sentence, re.IGNORECASE) for pattern in clause_patterns)]
 
@@ -88,5 +86,7 @@ if uploaded_file is not None:
                         st.warning("Analysis failed. Please check your document and try again.")
             else:
                 st.warning("No relevant clauses or terms found in the document.")
+        else:
+            st.warning("Could not extract text from uploaded PDF.")
     else:
         st.error("Unsupported file type. Please upload a PDF file.")
