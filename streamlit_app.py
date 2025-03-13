@@ -18,10 +18,15 @@ def extract_text_from_pdf(file):
                     text += page_text
             except Exception as page_e:
                 st.warning(f"Warning: Error extracting text from page {page_num + 1}: {page_e}")
-        if not text.strip(): #check if the string is empty or contains only whitespace.
-            st.error("Error: Extracted text is empty or contains only whitespace.")
+
+        text = text.strip()  # Remove leading/trailing whitespace
+
+        if not text:
+            st.error("Error: Extracted text is empty or contains only whitespace. This could be due to a scanned PDF, or a PDF with unusual formatting.")
             return None
-        return text.strip()
+
+        return text
+
     except Exception as e:
         st.error(f"Error extracting text from PDF: {e}")
         return None
@@ -100,8 +105,6 @@ if uploaded_file is not None:
                         st.warning("Analysis failed. Please check your document and try again.")
             else:
                 st.warning("No relevant clauses or terms found in the document.")
-        else:
-            # Error message is already in extract_text_from_pdf
-            pass
+        # else: error message is already in extract_text_from_pdf
     else:
         st.error("Unsupported file type. Please upload a PDF file.")
