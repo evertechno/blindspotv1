@@ -50,16 +50,15 @@ if uploaded_file is not None:
 
     if file_type == "application/pdf":
         document_text = extract_text_from_pdf(uploaded_file)
+        if document_text:
+            if st.button("Perform Deep Analysis"):
+                with st.spinner("Analyzing document..."):
+                    analysis_result = analyze_insurance_document(document_text)
+
+                if analysis_result:
+                    st.subheader("Detailed Analysis Results:")
+                    st.write(analysis_result)
+                else:
+                    st.warning("Analysis failed. Please check your document and try again.")
     else:
         st.error("Unsupported file type. Please upload a PDF file.")
-        document_text = None
-
-    if document_text and st.button("Perform Deep Analysis"):
-        with st.spinner("Analyzing document..."):
-            analysis_result = analyze_insurance_document(document_text)
-
-        if analysis_result:
-            st.subheader("Detailed Analysis Results:")
-            st.write(analysis_result)
-        else:
-            st.warning("Analysis failed. Please check your document and try again.")
