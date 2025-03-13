@@ -11,13 +11,15 @@ def extract_text_from_pdf(file):
         pdf_reader = PyPDF2.PdfReader(file)
         text = ""
         for page_num in range(len(pdf_reader.pages)):
-            text += pdf_reader.pages[page_num].extract_text() or ""  # Handle pages without text
+            page = pdf_reader.pages[page_num]
+            if page.extract_text():
+              text += page.extract_text()
         return text
     except Exception as e:
         st.error(f"Error extracting text from PDF: {e}")
         return None
 
-def extract_relevant_clauses(document_text):
+def extract_relevant_clauses(document_text, max_length=3000):  # Limit text length
     try:
         clause_patterns = [
             r'\bterm\b',
@@ -32,8 +34,14 @@ def extract_relevant_clauses(document_text):
 
         sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', document_text)
         relevant_sentences = [sentence for sentence in sentences if any(re.search(pattern, sentence, re.IGNORECASE) for pattern in clause_patterns)]
+        relevant_text = ' '.join(relevant_sentences)
 
-        return ' '.join(relevant_sentences)
+        # Limit the length of the relevant text to avoid API overload
+        if len(relevant_text) > max_length:
+            relevant_text = relevant_text[:max_length] + "..."  # Truncate and add ellipsis
+
+        return relevant_text
+
     except Exception as e:
         st.error(f"Error extracting relevant clauses: {e}")
         return None
