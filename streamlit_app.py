@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 import PyPDF2
+import re
 
 # Configure the API key for google.generativeai
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -16,14 +17,37 @@ def extract_text_from_pdf(file):
         st.error(f"Error extracting text from PDF: {e}")
         return None
 
-def analyze_insurance_document(document_text):
+def extract_relevant_clauses(document_text):
+    try:
+        # Define patterns to identify clauses and terms
+        clause_patterns = [
+            r'\bterm\b',
+            r'\bclause\b',
+            r'\bcondition\b',
+            r'\brisk\b',
+            r'\bexclusion\b',
+            r'\bcoverage\b',
+            r'\bliability\b',
+            r'\bpolicy\b'
+        ]
+
+        # Extract sentences containing the relevant patterns
+        sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', document_text)
+        relevant_sentences = [sentence for sentence in sentences if any(re.search(pattern, sentence, re.IGNORECASE) for pattern in clause_patterns)]
+
+        return ' '.join(relevant_sentences)
+    except Exception as e:
+        st.error(f"Error extracting relevant clauses: {e}")
+        return None
+
+def analyze_insurance_document(relevant_text):
     try:
         model = genai.GenerativeModel('gemini-1.5-pro')
 
         detailed_analysis_prompt = f"""
         Analyze the following insurance document text with a focus on complex terms, potential risks, and hidden clauses.
 
-        {document_text}
+        {relevant_text}
 
         Provide:
         1. An easy-to-understand summary of the document.
@@ -51,14 +75,18 @@ if uploaded_file is not None:
     if file_type == "application/pdf":
         document_text = extract_text_from_pdf(uploaded_file)
         if document_text:
-            if st.button("Perform Deep Analysis"):
-                with st.spinner("Analyzing document..."):
-                    analysis_result = analyze_insurance_document(document_text)
+            relevant_text = extract_relevant_clauses(document_text)
+            if relevant_text:
+                if st.button("Perform Deep Analysis"):
+                    with st.spinner("Analyzing document..."):
+                        analysis_result = analyze_insurance_document(relevant_text)
 
-                if analysis_result:
-                    st.subheader("Detailed Analysis Results:")
-                    st.write(analysis_result)
-                else:
-                    st.warning("Analysis failed. Please check your document and try again.")
+                    if analysis_result:
+                        st.subheader("Detailed Analysis Results:")
+                        st.write(analysis_result)
+                    else:
+                        st.warning("Analysis failed. Please check your document and try again.")
+            else:
+                st.warning("No relevant clauses or terms found in the document.")
     else:
         st.error("Unsupported file type. Please upload a PDF file.")
