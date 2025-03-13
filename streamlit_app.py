@@ -12,14 +12,21 @@ def extract_text_from_pdf(file):
         text = ""
         for page_num in range(len(pdf_reader.pages)):
             page = pdf_reader.pages[page_num]
-            if page.extract_text():
-              text += page.extract_text()
-        return text
+            try:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text
+            except Exception as page_e:
+                st.warning(f"Warning: Error extracting text from page {page_num + 1}: {page_e}")
+        if not text.strip(): #check if the string is empty or contains only whitespace.
+            st.error("Error: Extracted text is empty or contains only whitespace.")
+            return None
+        return text.strip()
     except Exception as e:
         st.error(f"Error extracting text from PDF: {e}")
         return None
 
-def extract_relevant_clauses(document_text, max_length=3000):  # Limit text length
+def extract_relevant_clauses(document_text, max_length=3000):
     try:
         clause_patterns = [
             r'\bterm\b',
@@ -36,9 +43,8 @@ def extract_relevant_clauses(document_text, max_length=3000):  # Limit text leng
         relevant_sentences = [sentence for sentence in sentences if any(re.search(pattern, sentence, re.IGNORECASE) for pattern in clause_patterns)]
         relevant_text = ' '.join(relevant_sentences)
 
-        # Limit the length of the relevant text to avoid API overload
         if len(relevant_text) > max_length:
-            relevant_text = relevant_text[:max_length] + "..."  # Truncate and add ellipsis
+            relevant_text = relevant_text[:max_length] + "..."
 
         return relevant_text
 
@@ -95,6 +101,7 @@ if uploaded_file is not None:
             else:
                 st.warning("No relevant clauses or terms found in the document.")
         else:
-            st.warning("Could not extract text from uploaded PDF.")
+            # Error message is already in extract_text_from_pdf
+            pass
     else:
         st.error("Unsupported file type. Please upload a PDF file.")
